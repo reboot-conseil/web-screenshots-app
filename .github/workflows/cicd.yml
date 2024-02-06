@@ -1,0 +1,36 @@
+name: cicd
+
+on:
+  push:
+      branches: [main]
+
+jobs:
+
+  migrator:
+    runs-on: ubuntu-latest
+    name: push job image to GAR
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: creating a service account key file so that Docker build does not complain
+        run: |
+          touch ./web-screenshots-app-sa.json 
+            
+
+      # Build and publish the Docker image to the GCP Artifact Registry
+      # ! you need to have created a Google Artifact Registry repository beforehand
+      - name: login to GAR to push image
+        uses: docker/login-action@v3
+        with:
+          registry: europe-west1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.GCP_SA }}
+      - id: docker-push-tagged
+        name: Tag Docker image and push to Google Artifact Registry
+        uses: docker/build-push-action@v5
+        with:
+          file: Dockerfile
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.GAR_FQN }}/screenshotter:latest
